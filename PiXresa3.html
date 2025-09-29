@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Village du Caillou - Plan</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      margin: 0;
+      background: #f5f5f5;
+      font-family: Arial, sans-serif;
+    }
+    .plan {
+      position: relative;
+    }
+    .plan img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    .hotspot {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 0, 0, 0.5);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    .hotspot:hover {
+      background: rgba(0, 255, 0, 0.6);
+    }
+
+    /* Style du popup (modal) */
+    .modal {
+      display: none; 
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background: white;
+      margin: 5% auto;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+    }
+    .close {
+      color: red;
+      float: right;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover {
+      color: darkred;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    input {
+      width: 90%;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: green;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: darkgreen;
+    }
+  </style>
+</head>
+<body>
+  <div class="plan">
+    <img src="Village-Caillou.png" alt="Village du Caillou">
+
+    <!-- Appartements -->
+    <div class="hotspot" style="top: 28%; left: 44%;" data-appart="Appart1"> </div>
+    <div class="hotspot" style="top: 68%; left: 60%;" data-appart="Appart2"> </div>
+    <div class="hotspot" style="top: 45%; left: 60%;" data-appart="Appart3"> </div>
+    <div class="hotspot" style="top: 60%; left: 67%;" data-appart="Appart4"> </div>
+    <div class="hotspot" style="top: 73%; left: 70%;" data-appart="Appart5"> </div>
+    <div class="hotspot" style="top: 27%; left: 58%;" data-appart="Appart6"> </div>
+    <div class="hotspot" style="top: 12%; left: 68%;" data-appart="Appart7"> </div>
+    <div class="hotspot" style="top: 14%; left: 57%;" data-appart="Appart8"> </div>
+  </div>
+
+  <!-- Popup -->
+  <div id="reservationModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="appartTitle"></h2>
+      <table id="reservationTable">
+        <thead>
+          <tr>
+            <th>Place</th>
+            <th>Nom</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="saveBtn">Enregistrer</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyAqjiR7ugQ9Eg6c7oz-5o9bo5iHvfO4gf0usoymjORelgfHArsdR4vl1vA6OfHoLeh/exec"; // 🔗 Remplace par ton URL Apps Script
+    let reservations = {};
+    let currentAppart = null;
+
+    const hotspots = document.querySelectorAll(".hotspot");
+    const modal = document.getElementById("reservationModal");
+    const closeBtn = document.querySelector(".close");
+    const appartTitle = document.getElementById("appartTitle");
+    const tableBody = document.querySelector("#reservationTable tbody");
+    const saveBtn = document.getElementById("saveBtn");
+
+    // Définition des capacités par appartement
+    const capacities = {
+      "Appart1": 6,
+      "Appart2": 6,
+      "Appart3": 6,
+      "Appart4": 6,
+      "Appart5": 6,
+      "Appart6": 8, // Appart6 a 8 places
+      "Appart7": 6,
+      "Appart8": 6
+    };
+
+    // Charger les réservations depuis Google Sheets
+    async function loadReservations() {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+
+      reservations = {};
+      data.forEach(r => {
+        if (!reservations[r.appartement]) reservations[r.appartement] = [];
+        reservations[r.appartement][r.place - 1] = r.nom;
+      });
+    }
+
+    // Sauvegarder une réservation
+    async function saveReservation(appartement, place, nom) {
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ appartement, place, nom }),
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // Affichage du tableau
+    function renderTable() {
+      tableBody.innerHTML = "";
+      const capacity = capacities[currentAppart];
+      const places = reservations[currentAppart] || Array(capacity).fill("");
+
+      for (let i = 0; i < capacity; i++) {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${i+1}</td>
+          <td><input type="text" value="${places[i] || ""}" data-index="${i}"></td>
+        `;
+        tableBody.appendChild(row);
+      }
+    }
+
+    // --- Événements ---
+    hotspots.forEach(hotspot => {
+      hotspot.addEventListener("click", async () => {
+        currentAppart = hotspot.dataset.appart;
+        appartTitle.textContent = "Réservations - " + currentAppart;
+        await loadReservations();
+        renderTable();
+        modal.style.display = "block";
+      });
+    });
+
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+    };
+    window.onclick = (event) => {
+      if (event.target === modal) modal.style.display = "none";
+    };
+
+    saveBtn.addEventListener("click", async () => {
+      const inputs = tableBody.querySelectorAll("input");
+      for (const input of inputs) {
+        const index = input.dataset.index;
+        const nom = input.value.trim();
+        reservations[currentAppart][index] = nom;
+        await saveReservation(currentAppart, parseInt(index)+1, nom);
+      }
+      alert("Réservations mises à jour en ligne pour " + currentAppart + " !");
+    });
+  </script>
+</body>
+</html>
