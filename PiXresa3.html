@@ -188,24 +188,21 @@
       }
     }
 
-    // --- Événements ---
+    // Clic sur un appartement
     hotspots.forEach(hotspot => {
-      hotspot.addEventListener("click", async () => {
+      hotspot.addEventListener("click", () => {
         currentAppart = hotspot.dataset.appart;
         appartTitle.textContent = "Réservations - " + currentAppart;
-        await loadReservations();
-        renderTable();
+        renderTable(); // popup instantané
         modal.style.display = "block";
       });
     });
 
-    closeBtn.onclick = () => {
-      modal.style.display = "none";
-    };
-    window.onclick = (event) => {
-      if (event.target === modal) modal.style.display = "none";
-    };
+    // Fermer popup
+    closeBtn.onclick = () => modal.style.display = "none";
+    window.onclick = (event) => { if (event.target === modal) modal.style.display = "none"; };
 
+    // Enregistrer les réservations
     saveBtn.addEventListener("click", async () => {
       const inputs = tableBody.querySelectorAll("input");
       for (const input of inputs) {
@@ -216,6 +213,9 @@
       }
       alert("Réservations mises à jour en ligne pour " + currentAppart + " !");
     });
+
+    // --- Charger les réservations dès que la page est prête ---
+    window.addEventListener("load", loadReservations);
   </script>
 </body>
 </html>
